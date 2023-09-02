@@ -1,5 +1,5 @@
 # Scratch3D
-A 3D Renderer in scratch using Turbowarp's custom extensions
+A largely unfinished 3D Renderer in scratch using Turbowarp's custom extensions
 
 [Turbowarp Project link](https://turbowarp.org/?project_url=https://potential1energy.github.io/Scratch3D/3D_Renderer.sb3)
 
