@@ -49,7 +49,7 @@
     text: text,
   });
 
-  function loadImageAndCreateTextureInfo(url, clamp) {
+  function loadImageAndCreateTextureInfo(url, clamp, MIN_FILTER, MAG_FILTER) {
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
@@ -72,12 +72,15 @@
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
     }
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, MIN_FILTER);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, MAG_FILTER);
 
     const textureInfo = {
       width: 1,
       height: 1,
       texture,
+      MIN_FILTER : MIN_FILTER,
+      MAG_FILTER : MAG_FILTER
     };
 
     Scratch.canFetch(url).then((allowed) => {
@@ -299,7 +302,7 @@
           {
             opcode: 'sendtexturetoshader',
             blockType: Scratch.BlockType.COMMAND,
-            text: 'Send texture to shader | Shader program name: [Programname] Texture type: [Texturetype] Uniform: [Uniformname] Unit: [Unit] Value: [Value]',
+            text: 'Send texture to shader | Shader program name: [Programname] Texture type: [Texturetype] Uniform: [Uniformname] Unit: [Unit] Value: [Value] Min Filter: [MinFilter] Mag Filter: [MagFilter]',
             arguments: {
               Programname: {
                 type: Scratch.ArgumentType.STRING,
@@ -319,6 +322,16 @@
               },
               Value: {
                 type: Scratch.ArgumentType.STRING
+              },
+              MinFilter: {
+                type: Scratch.ArgumentType.STRING,
+                defaultValue: 'NEAREST',
+                menu: 'FilterType'
+              },
+              MagFilter: {
+                type: Scratch.ArgumentType.STRING,
+                defaultValue: 'LINEAR',
+                menu: 'FilterType'
               }
             }
           },
@@ -637,6 +650,13 @@
           DepthMode: {
             acceptReporters: false,
             items: ['NEVER', 'LESS', 'EQUAL', 'LEQUAL', 'GREATER', 'NOTEQUAL', 'GEQUAL', 'ALWAYS']
+          },
+          FilterType: {
+            acceptReporters: false,
+            items: [
+              'LINEAR',
+              'NEAREST'
+            ]
           }
         }
 
@@ -680,11 +700,14 @@
       }
       gl[Uniformtype](uniform, split);
     }
-    sendtexturetoshader({Programname, Texturetype, Uniformname, Unit, Value}) {
+    sendtexturetoshader({Programname, Texturetype, Uniformname, Unit, Value, MinFilter, MagFilter}) {
       const uniform = gl.getUniformLocation(glShaderPrograms[Programname], Uniformname);
       if (Texturetype == 'uniformTexture2D') {
         if (!textures.hasOwnProperty(Value)) {
-          textures[Value] = loadImageAndCreateTextureInfo(Value, true);
+          textures[Value] = loadImageAndCreateTextureInfo(Value, true, gl[MinFilter], gl[MagFilter]);
+        }
+        if (textures[Value].MIN_FILTER != gl[MinFilter] || textures[Value].MAG_FILTER != gl[MagFilter]) {
+          textures[Value] = loadImageAndCreateTextureInfo(Value, true, gl[MinFilter], gl[MagFilter]);
         }
         gl.activeTexture(gl['TEXTURE'+Unit]);
         gl.bindTexture(gl.TEXTURE_2D, textures[Value].texture);
